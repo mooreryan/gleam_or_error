@@ -1,0 +1,7 @@
+---
+version: 1.1.6
+title: or_error_test.to_json__ok__test
+file: ./test/or_error_test.gleam
+test_name: to_json__ok__test
+---
+["Ok","the result"]

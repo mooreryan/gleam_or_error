@@ -1,3 +1,5 @@
+import birdie
+import gleam/json
 import gleeunit
 import gleeunit/should
 import or_error.{type OrError}
@@ -6,8 +8,8 @@ pub fn main() {
   gleeunit.main()
 }
 
+// This is a function to spoof getting environment variables.
 fn get_env(env_var: String) -> OrError(String) {
-  // This is a function to spoof getting environment variables.
   case env_var {
     "USER" -> or_error.return("ryan")
     "HOME" -> or_error.return("/home/ryan")
@@ -21,8 +23,7 @@ type EnvInfo {
 }
 
 fn make_env_info(user user, home home, shell shell) {
-  EnvInfo
-  |> or_error.return_curry3
+  or_error.return_curry3(EnvInfo)
   |> or_error.apply(user)
   |> or_error.apply(home)
   |> or_error.apply(shell)
@@ -43,7 +44,7 @@ fn env_info_to_string(env_info: EnvInfo) -> String {
   <> env_info.shell
 }
 
-pub fn or_error_both_f__test() {
+pub fn or_error_both_use__test() {
   {
     use <- or_error.both_(get_env("USER"))
     use <- or_error.both_(get_env("HOME"))
@@ -51,10 +52,10 @@ pub fn or_error_both_f__test() {
   }
   |> or_error.map(make_env_info_tup)
   |> or_error.to_string(env_info_to_string)
-  |> should.equal("USER: ryan; HOME: /home/ryan; SHELL: /bin/bash")
+  |> should.equal("Ok: USER: ryan; HOME: /home/ryan; SHELL: /bin/bash")
 }
 
-pub fn or_error_both_f__2__test() {
+pub fn or_error_both_use__2__test() {
   let result =
     {
       use <- or_error.both_(get_env("apple"))
@@ -65,7 +66,7 @@ pub fn or_error_both_f__2__test() {
 
   result
   |> or_error.to_string(env_info_to_string)
-  |> should.equal("'apple' is not set; 'cherry' is not set")
+  |> should.equal("Error: 'apple' is not set; 'cherry' is not set")
 }
 
 pub fn tuple_n__test() {
@@ -75,7 +76,7 @@ pub fn tuple_n__test() {
     EnvInfo(user: user, home: home, shell: shell)
   })
   |> or_error.to_string(env_info_to_string)
-  |> should.equal("USER: ryan; HOME: /home/ryan; SHELL: /bin/bash")
+  |> should.equal("Ok: USER: ryan; HOME: /home/ryan; SHELL: /bin/bash")
 }
 
 pub fn or_error_apply__ok_2__test() {
@@ -86,7 +87,7 @@ pub fn or_error_apply__ok_2__test() {
   )
   |> or_error.tag("getting environment variables")
   |> or_error.to_string(env_info_to_string)
-  |> should.equal("USER: ryan; HOME: /home/ryan; SHELL: /bin/bash")
+  |> should.equal("Ok: USER: ryan; HOME: /home/ryan; SHELL: /bin/bash")
 }
 
 pub fn or_error_apply__error_2__test() {
@@ -98,6 +99,44 @@ pub fn or_error_apply__error_2__test() {
   |> or_error.tag("getting environment variables")
   |> or_error.to_string(env_info_to_string)
   |> should.equal(
-    "getting environment variables: 'apple' is not set; 'pie' is not set",
+    "Error: getting environment variables: 'apple' is not set; 'pie' is not set",
   )
+}
+
+pub fn to_string__ok__test() {
+  or_error.return("the result")
+  |> or_error.tag("tag one")
+  |> or_error.tag("tag two")
+  |> or_error.tag("tag three")
+  |> or_error.to_string(fn(x) { x })
+  |> birdie.snap("or_error_test.to_string__ok__test")
+}
+
+pub fn to_string__error__test() {
+  or_error.error_string("the error")
+  |> or_error.tag("tag one")
+  |> or_error.tag("tag two")
+  |> or_error.tag("tag three")
+  |> or_error.to_string(fn(x) { x })
+  |> birdie.snap("or_error_test.to_string__error__test")
+}
+
+pub fn to_json__ok__test() {
+  or_error.return("the result")
+  |> or_error.tag("tag one")
+  |> or_error.tag("tag two")
+  |> or_error.tag("tag three")
+  |> or_error.to_json(json.string)
+  |> json.to_string
+  |> birdie.snap("or_error_test.to_json__ok__test")
+}
+
+pub fn to_json__error__test() {
+  or_error.error_string("the error")
+  |> or_error.tag("tag one")
+  |> or_error.tag("tag two")
+  |> or_error.tag("tag three")
+  |> or_error.to_json(json.string)
+  |> json.to_string
+  |> birdie.snap("or_error_test.to_json__error__test")
 }

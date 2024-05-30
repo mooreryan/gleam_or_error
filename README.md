@@ -2,18 +2,13 @@
 
 Proof of concept implementation of Jane Street's [Or_error](https://ocaml.org/p/base/v0.16.3/doc/Base/Or_error/index.html) for Gleam.
 
-You will notice many things missing compared to the linked docs including pleasant serialization and lazy message creation.
-
-However, it does allow an applicative style of error handling, where you can run all your `OrError` producing functions and get back all errors that were generated.  
-
-
 ## Example
 
 Imagine you have some code to get environment variables.
 
 ```gleam
+// This is a function to spoof getting environment variables.
 fn get_env(env_var: String) -> OrError(String) {
-  // This is a function to spoof getting environment variables.
   case env_var {
     "HOME" -> or_error.return("/home/ryan")
     "USER" -> or_error.return("ryan")
@@ -26,10 +21,18 @@ type EnvInfo {
   EnvInfo(user: String, home: String, shell: String)
 }
 
+// Helper function that takes `OrError` values (a.k.a., `Result`s).
 fn make_env_info(user user, home home, shell shell) {
-  EnvInfo(user, home, shell)
+  // We use return_curry3 to both curry the `EnvInfo` function, and lift it into
+  // the OrError.
+  or_error.return_curry3(EnvInfo)
+  // Then we apply the lifted function to the arguments.
+  |> or_error.apply(user)
+  |> or_error.apply(home)
+  |> or_error.apply(shell)
 }
 
+// EnvInfo as a string
 fn env_info_to_string(env_info: EnvInfo) -> String {
   "USER: "
   <> env_info.user
@@ -43,46 +46,41 @@ fn env_info_to_string(env_info: EnvInfo) -> String {
 Then you could imagine some code like this to actually attempt to get some variables from the environment.
 
 ```gleam
-pub fn example1() {
-  let env_info =
-    make_env_info
-    |> function.curry3
-    |> or_error.return
-    |> or_error.apply(get_env("USER"))
-    |> or_error.apply(get_env("HOME"))
-    |> or_error.apply(get_env("SHELL"))
-    |> or_error.tag("getting environment variables")
-
-  env_info
+pub fn example_ok_test() {
+  make_env_info(
+    user: get_env("USER"),
+    home: get_env("HOME"),
+    shell: get_env("SHELL"),
+  )
+  |> or_error.tag("getting environment variables")
   |> or_error.to_string(env_info_to_string)
-  |> should.equal("USER: ryan; HOME: /home/ryan; SHELL: /bin/bash")
+  |> should.equal("Ok: USER: ryan; HOME: /home/ryan; SHELL: /bin/bash")
 }
 
-pub fn example2() {
-  let env_info =
-    make_env_info
-    |> function.curry3
-    |> or_error.return
-    |> or_error.apply(get_env("apple"))
-    |> or_error.apply(get_env("HOME"))
-    |> or_error.apply(get_env("pie"))
-    |> or_error.tag("getting environment variables")
-
-  env_info
+pub fn example_error_test() {
+  make_env_info(
+    user: get_env("apple"),
+    home: get_env("HOME"),
+    shell: get_env("pie"),
+  )
+  // This tag will be to add context
+  |> or_error.tag("getting environment variables")
   |> or_error.to_string(env_info_to_string)
+  // You can see all the errors are collected.
   |> should.equal(
-    "getting environment variables: 'apple' is not set; 'pie' is not set",
+    "Error: getting environment variables: 'apple' is not set; 'pie' is not set",
   )
 }
 ```
 
-That `or_error.tag` is optional, but it can be nice if you are passing around an `OrError` and it could fail in multiple contexts.
+That `or_error.tag` is optional, but it can be nice to add additional context to any potential failures, especially if they are bubbling up from deep in your application.
 
-You could also use the `or_error.both` style if you prefer, but that isn't quite as pleasant without the syntax support that OCaml has (e.g., the `let%bind ... and` seen in [ppx_let](https://github.com/janestreet/ppx_let?tab=readme-ov-file#syntactic-forms-and-actual-rewriting).)
+This is the applicative style error handling.[^1]  It is convenient when you need to perform multiple operations that may fail, and those operations are not related.  Note that the `OrError` type and its operations also can be used as a functor and monad as well.
 
-## Acknowledgements
+## Notes
 
-Very heavily inspired by the `Or_error` module from Jane Street's [Base](https://github.com/janestreet/base) package.
+- It's using gleam/json v2, so requires Erlang OTP 27.
+- Unlike OCaml's `Or_error`, in this library the Error message is not lazy.[^2]
 
 ## License
 
@@ -92,3 +90,6 @@ Very heavily inspired by the `Or_error` module from Jane Street's [Base](https:/
 Copyright (c) 2024 Ryan M. Moore
 
 Licensed under the Apache License, Version 2.0 or the MIT license, at your option. This program may not be copied, modified, or distributed except according to those terms.
+
+[^1]: Unfortunately, (or fortunately, depending on your point of view), Gleam does not support custom infix operators or currying by default, so you can't write it in the more natural style, e.g., `EnvInfo <$> user <*> home <*> shell`.
+[^2]: I tried out a version with the lazy messages, but it was fairly annoying to use as Gleam doesn't give you a way to do the internal mutability required for a pleasant lazy type without using FFI, as far as I can tell.  It might be something worth revisiting later.
