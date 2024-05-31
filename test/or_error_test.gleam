@@ -44,6 +44,47 @@ fn env_info_to_string(env_info: EnvInfo) -> String {
   <> env_info.shell
 }
 
+pub fn map_without_use__ok_readme_example__test() {
+  or_error.map3(get_env("USER"), get_env("HOME"), get_env("SHELL"), EnvInfo)
+  |> or_error.tag("getting environment variables")
+  |> or_error.to_string(env_info_to_string)
+  |> should.equal("Ok: USER: ryan; HOME: /home/ryan; SHELL: /bin/bash")
+}
+
+pub fn map_with_use__ok__test() {
+  let env_info = {
+    use user, home, shell <- or_error.map3(
+      get_env("USER"),
+      get_env("HOME"),
+      get_env("SHELL"),
+    )
+    EnvInfo(user: user, home: home, shell: shell)
+  }
+
+  env_info
+  |> or_error.tag("getting environment variables")
+  |> or_error.to_string(env_info_to_string)
+  |> should.equal("Ok: USER: ryan; HOME: /home/ryan; SHELL: /bin/bash")
+}
+
+pub fn map_with_use__error__test() {
+  let env_info = {
+    use user, home, shell <- or_error.map3(
+      get_env("apple"),
+      get_env("HOME"),
+      get_env("pie"),
+    )
+    EnvInfo(user: user, home: home, shell: shell)
+  }
+
+  env_info
+  |> or_error.tag("getting environment variables")
+  |> or_error.to_string(env_info_to_string)
+  |> should.equal(
+    "Error: getting environment variables: 'apple' is not set; 'pie' is not set",
+  )
+}
+
 pub fn or_error_both_use__test() {
   {
     use <- or_error.both_(get_env("USER"))

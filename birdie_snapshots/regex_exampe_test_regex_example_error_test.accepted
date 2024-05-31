@@ -1,0 +1,7 @@
+---
+version: 1.1.6
+title: regex_exampe_test.regex_example__error__test
+file: ./test/examples/regex_example_test.gleam
+test_name: regex_example__error__test
+---
+["Error","CompileError(\"missing terminating ] for character class\", 5)"]

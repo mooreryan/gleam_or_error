@@ -89,7 +89,7 @@ pub fn from_list__no_truncate_after__test() {
     error.from_string("c error") |> error.tag("c tag"),
   ]
 
-  error.from_list(errors, None)
+  error.from_list(errors)
   |> error.to_string
   |> should.equal("a tag: a error; b tag: b error; c tag: c error")
 }
@@ -101,7 +101,7 @@ pub fn from_list__truncate_after_1__test() {
     error.from_string("c error") |> error.tag("c tag"),
   ]
 
-  error.from_list(errors, Some(1))
+  error.from_list_truncate_after(errors, 1)
   |> error.to_string
   |> should.equal("a tag: a error; and 2 more errors")
 }
@@ -113,7 +113,7 @@ pub fn from_list__truncate_after_2__test() {
     error.from_string("c error") |> error.tag("c tag"),
   ]
 
-  error.from_list(errors, Some(2))
+  error.from_list_truncate_after(errors, 2)
   |> error.to_string
   |> should.equal("a tag: a error; b tag: b error; and 1 more error")
 }
@@ -125,7 +125,7 @@ pub fn from_list__truncate_after_3__test() {
     error.from_string("c error") |> error.tag("c tag"),
   ]
 
-  error.from_list(errors, Some(3))
+  error.from_list_truncate_after(errors, 3)
   |> error.to_string
   |> should.equal("a tag: a error; b tag: b error; c tag: c error")
 }

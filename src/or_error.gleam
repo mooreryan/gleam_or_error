@@ -1,7 +1,6 @@
 import gleam/bool
 import gleam/function
 import gleam/json.{type Json}
-import gleam/option.{None}
 import gleam/order
 import gleam/result
 import or_error/error.{type Error}
@@ -37,7 +36,7 @@ fn do_combine_errors(
 fn error_from_list_if_necessary(e: List(Error)) -> Error {
   case e {
     [e] -> e
-    l -> error.from_list(l, None)
+    l -> error.from_list(l)
   }
 }
 
@@ -63,17 +62,11 @@ pub fn all_nil(ts: List(OrError(Nil))) -> OrError(Nil) {
 }
 
 pub fn combine_errors(ts: List(OrError(a))) -> OrError(List(a)) {
-  do_combine_errors(ts, on_ok: function.identity, on_error: error.from_list(
-    _,
-    None,
-  ))
+  do_combine_errors(ts, on_ok: function.identity, on_error: error.from_list)
 }
 
 pub fn combine_errors_nil(ts: List(OrError(Nil))) -> OrError(Nil) {
-  do_combine_errors(ts, on_ok: ignore_nil_list, on_error: error.from_list(
-    _,
-    None,
-  ))
+  do_combine_errors(ts, on_ok: ignore_nil_list, on_error: error.from_list)
 }
 
 fn result_compare(ok_cmp, err_cmp, r1, r2) {
@@ -134,6 +127,17 @@ pub fn to_json(ta: OrError(a), a_to_json: fn(a) -> Json) -> Json {
     Error(error) ->
       json.preprocessed_array([json.string("Error"), error.to_json(error)])
   }
+}
+
+pub fn from_result_map_error(
+  result: Result(a, error),
+  map_error: fn(error) -> Error,
+) -> OrError(a) {
+  result.map_error(result, map_error)
+}
+
+pub fn from_result(result: Result(a, error)) -> OrError(a) {
+  result.map_error(result, error.from_any)
 }
 
 pub fn ignore_m(t: OrError(a)) -> OrError(Nil) {
@@ -291,7 +295,7 @@ pub fn map2(ta: OrError(a), tb: OrError(b), f: fn(a, b) -> c) -> OrError(c) {
   case ta, tb {
     Ok(x), Ok(y) -> Ok(f(x, y))
     Ok(_), Error(e) | Error(e), Ok(_) -> Error(e)
-    Error(e1), Error(e2) -> Error(error.from_list([e1, e2], None))
+    Error(e1), Error(e2) -> Error(error.from_list([e1, e2]))
   }
 }
 

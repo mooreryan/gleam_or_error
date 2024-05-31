@@ -5,6 +5,7 @@ import gleam/option.{type Option, None, Some}
 import gleam/order
 import gleam/string
 
+/// 
 pub opaque type Error {
   String(String)
   Tagged(String, Error)
@@ -77,6 +78,10 @@ pub fn from_string(s: String) -> Error {
   String(s)
 }
 
+pub fn from_any(any: any) -> Error {
+  from_string(string.inspect(any))
+}
+
 fn extra_errors_msg(n n, max max) {
   case n - max {
     1 -> "and 1 more error"
@@ -122,8 +127,13 @@ pub fn to_string(error: Error) -> String {
 }
 
 ///
-pub fn from_list(ts: List(Error), truncate_after: Option(Int)) -> Error {
-  FromList(truncate_after, ts)
+pub fn from_list(ts: List(Error)) -> Error {
+  FromList(None, ts)
+}
+
+///
+pub fn from_list_truncate_after(ts: List(Error), truncate_after: Int) -> Error {
+  FromList(Some(truncate_after), ts)
 }
 
 ///
